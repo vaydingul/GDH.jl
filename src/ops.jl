@@ -1,12 +1,11 @@
-export iterate, NetworkData, length
+export iterate, length, NetworkData, DataHandler
 
-using Images
-using DelimitedFiles
+using FunctionLib
 import Base: length, iterate, vcat
 
 abstract type GenericDataHandler end
 
-struct TUM69DataHandler <: GenericDataHandler
+struct DataHandler <: GenericDataHandler
 
     # Tuple of method and its arguments
     # The defined method should walk the directory of the data
@@ -21,37 +20,7 @@ struct TUM69DataHandler <: GenericDataHandler
 
 end
 
-# Helper functions which are specialized for this project!
-function AccelerationSignalHandlerConstructor(; is_online = false, type = "train", mode = "basic", 
-    freq_count=50, signal_count=300, Fs=10000, window_length=500, noverlap=400)
-
-    data_read_method = [(load_accel_data, Dict(:type => type, :mode => mode))]
-
-    data_preprocess_method = [(process_accel_signal, Dict(:freq_count => freq_count, :signal_count => signal_count,
-    :Fs => Fs, :window_length => window_length, :noverlap => noverlap))]
-
-    return TUM69DataHandler(data_read_method, data_preprocess_method, is_online)
-
-end
-
-
-function CameraImageHandlerConstructor(; is_online = true, type = "train", mode = "basic",
-    crop_size = 384, resize_ratio = 0.5, o...)
-
-    data_read_method = [(load_image_data, Dict(:type => type, :mode => mode))]
-
-    data_preprocess_method = [(process_image, Dict(:crop_size => crop_size, :resize_ratio => resize_ratio)), 
-    (augment_image, o...)]
-
-    return TUM69DataHandler(data_read_method, data_preprocess_method, is_online)
-
-end
-
-
-
-
-
-mutable struct NetworkData{T} where T <: GenericDataHandler
+mutable struct NetworkData{T}
 
     
     data::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
@@ -70,11 +39,11 @@ mutable struct NetworkData{T} where T <: GenericDataHandler
 
 end
 
-function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0,  batchsize::Int=1, atype=Array{Float32}) where T<:GenericDataHandler
+function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0,  batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
     #= 
          Custom constructor =#
 
-    data , label_dict = T.data_read_method[1](main_path;T.data_read_method[2])
+    data , label_dict = T.data_read_method[1](main_path;T.data_read_method[2]...)
 
     read_count = floor(Int, length(data) * read_rate) # Number of data points to read each time
     

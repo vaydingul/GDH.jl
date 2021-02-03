@@ -1,5 +1,5 @@
 module GDH
 
-greet() = print("Hello World!")
+include("ops.jl"); export DataHandler, NetworkData
 
 end # module
