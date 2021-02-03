@@ -1,0 +1,8 @@
+name = "GDH"
+uuid = "46380908-e71f-4333-a063-fa1061d3f487"
+authors = ["Volkan Aydıngül <volkanaydingul@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+FunctionLib = "831199b4-b228-43a0-9d39-c31c50af4323"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
