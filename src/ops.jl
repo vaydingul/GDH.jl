@@ -5,21 +5,43 @@ import Base: length, iterate, vcat
 
 abstract type GenericDataHandler end
 
-struct DataHandler <: GenericDataHandler
+mutable struct DataHandler <: GenericDataHandler
 
     # Tuple of method and its arguments
     # The defined method should walk the directory of the data
     # and fetch the directories of the individual datum and label;
     # finally, should return an array of tuples consisting of the directories
     # and the labels.
-    data_read_method 
+    data_read_method::Array{FunctionHolder} 
     # Array of tuples consisting of functions and its arguments
-    data_preprocess_method
+    data_load_method::Array{FunctionHolder}
+    data_preprocess_method::Array{FunctionHolder}
     # Loading method
     is_online::Bool
 
+
+    # Uninitialized construction
+    DataHandler() = new(Array{FunctionHolder}[], Array{FunctionHolder}[], Array{FunctionHolder}[], true)
 end
 
+
+function add_data_read_method(dh::DataHandler, method::FunctionHolder)
+
+    push!(dh.data_read_method, method)
+
+end
+
+function add_data_load_method(dh::DataHandler, method::FunctionHolder)
+
+    push!(dh.data_load_method, method)
+
+end
+
+function add_data_preprocess_method(dh::DataHandler, method::FunctionHolder)
+
+    push!(dh.data_preprocess_method, method)
+
+end
 mutable struct NetworkData{T}
 
     
@@ -32,7 +54,7 @@ mutable struct NetworkData{T}
     
     batchsize::Int # Batchsize during training
     atype
-    
+
     X_ # Temporary data fields to be stored in CPU
     y_ # Temporary data fields to be stored in CPU
 
@@ -43,7 +65,7 @@ function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0,  batchsize
     #= 
          Custom constructor =#
 
-    data , label_dict = T.data_read_method[1](main_path;T.data_read_method[2]...)
+    data , label_dict = T.data_read_method(main_path)
 
     read_count = floor(Int, length(data) * read_rate) # Number of data points to read each time
     
