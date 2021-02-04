@@ -24,7 +24,7 @@ end
 
 
 function preprocess_data(X, y; ops1 = 1, ops2 = 2)
-
-	return X .^ 2 .+ ops1, y .^ 2 .+ ops2 
+	X = hcat(X'...)
+	return X.^2 .+ ops1, y.^2 .+ ops2 
 
 end

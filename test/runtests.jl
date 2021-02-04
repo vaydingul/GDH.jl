@@ -39,13 +39,14 @@ X_, y_ = dh.data_preprocess_method[1](X, y)
 	@testset "Data reading" begin
 
 		# Type check
-		@test typeof(data) <: Tuple{String, Int}
+		@test typeof(data) <: Array{Tuple{String, Int}, 1}
+		@test eltype(data) <: Tuple{String, Int}
 		# Value check
-		@test (data[1][1] == TEST_DATA_PATH_1 + "bar/1.txt") 
-		@test (data[2][1] == TEST_DATA_PATH_1 + "bar/2.txt")
+		@test (data[1][1] == TEST_DATA_PATH_1[1] * "bar/1.txt") 
+		@test (data[2][1] == TEST_DATA_PATH_1[1] * "bar/2.txt")
 
-		@test (data[3][1] == TEST_DATA_PATH_1 + "foo/1.txt") 
-		@test (data[4][1] == TEST_DATA_PATH_1 + "foo/2.txt")
+		@test (data[3][1] == TEST_DATA_PATH_1[1] * "foo/1.txt") 
+		@test (data[4][1] == TEST_DATA_PATH_1[1] * "foo/2.txt")
 
 		@test data[1][2] == 0
 		@test data[2][2] == 0
@@ -56,14 +57,14 @@ X_, y_ = dh.data_preprocess_method[1](X, y)
 
 	@testset "Data loading" begin
 		
-		@test X == [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
+		@test X == Any[Float32[1.0 2.0 3.0],Float32[4.0 5.0 6.0],Float32[7.0 8.0 9.0],Float32[10.0 11.0 12.0]]
 		@test y == [0, 0, 1, 1]
 
 	end
 
 	@testset "Data preprocess" begin
 		
-		@test X_ == X.^2 .+ 1
+		@test X_ == hcat(X'...).^2 .+ 1
 		@test y_ == y.^2 .+ 2
 
 	end
