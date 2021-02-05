@@ -4,5 +4,6 @@ authors = ["Volkan Aydıngül <volkanaydingul@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FunctionLib = "831199b4-b228-43a0-9d39-c31c50af4323"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
