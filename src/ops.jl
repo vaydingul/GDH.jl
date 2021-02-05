@@ -6,7 +6,6 @@ import Base: length, iterate, vcat
 abstract type GenericDataHandler end
 
 mutable struct DataHandler <: GenericDataHandler
-
     # Tuple of method and its arguments
     # The defined method should walk the directory of the data
     # and fetch the directories of the individual datum and label;
@@ -44,15 +43,16 @@ function add_data_preprocess_method(dh::DataHandler, method::FunctionHolder)
 end
 mutable struct NetworkData{T}
 
+    data_handler#::DataHandler
     
-    data::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
+    data#::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
+    label_dict#::Dict{Int8,String}
 
-    label_dict::Dict{Int8,String}
-    shuffle::Bool
+    shuffle#::Bool
     read_rate
-    read_count::Int # Whether all data will be read in once or will be iterated through
+    read_count#::Int # Whether all data will be read in once or will be iterated through
     
-    batchsize::Int # Batchsize during training
+    batchsize#::Int # Batchsize during training
     atype
 
     X_ # Temporary data fields to be stored in CPU
@@ -61,17 +61,17 @@ mutable struct NetworkData{T}
 
 end
 
-function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing, batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
+function NetworkData(data_handler,main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing, batchsize::Int=1, atype=Array{Float32}) 
     #= 
          Custom constructor =#
 
-    data, label_dict = T.data_read_method(main_path)
+    data = data_handler.data_read_method[1](main_path)
 
     read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
     
     # refresh_rate = floor(Int, read_count / batchsize)
 
-    NetworkData{T}(data, label_dict, shuffle, read_rate,read_count, batchsize, atype, nothing, nothing)
+    NetworkData{atype}(data_handler,data, nothing, shuffle, read_rate,read_count, batchsize, atype, nothing, nothing)
 
 
 end
