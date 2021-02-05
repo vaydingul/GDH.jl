@@ -61,7 +61,7 @@ mutable struct NetworkData{T}
 
 end
 
-function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing;  batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
+function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing, batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
     #= 
          Custom constructor =#
 
