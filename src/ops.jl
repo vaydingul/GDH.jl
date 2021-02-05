@@ -61,13 +61,13 @@ mutable struct NetworkData{T}
 
 end
 
-function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0,  batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
+function NetworkData{T}(main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing;  batchsize::Int=1, atype=Array{Float32}) where {T<:GenericDataHandler}
     #= 
          Custom constructor =#
 
-    data , label_dict = T.data_read_method(main_path)
+    data, label_dict = T.data_read_method(main_path)
 
-    read_count = floor(Int, length(data) * read_rate) # Number of data points to read each time
+    read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
     
     # refresh_rate = floor(Int, read_count / batchsize)
 
@@ -81,7 +81,7 @@ function NetworkData{T}(data, nd::NetworkData{T}) where T <: GenericDataHandler
 
     read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
 
-    return NetworkData{T}(data, nd.label_dict, nd.shuffle, nd.read_rate,read_count, nd.batchsize, nd.atype, nd.nothing, nd.nothing)
+    return NetworkData{T}(data, nd.label_dict, nd.shuffle, nd.read_rate,read_count, nd.batchsize, nd.atype, nothing, nothing)
 
 end
 
@@ -158,6 +158,7 @@ function iterate(nd::NetworkData, state=(0, 0, true))
 
         y = vcat([nd.data[k][2] for k in s1 + 1:next_s1]...)
         println("Data reading...")
+        #=
         if nd.type == "image"
 
             X = [load(nd.data[k][1]) for k in s1 + 1:next_s1]
@@ -174,7 +175,19 @@ function iterate(nd::NetworkData, state=(0, 0, true))
             nd.X_, nd.y_ = process_accel_signal(X, y)
 
         end
+        =#
+        
+        for load_ops in T.data_load_method
 
+            nd.X_, nd.y_ = load_ops(nd.X_, nd.y_)
+
+        end
+
+        for preprocess_ops in T.data_preprocess_method
+
+            nd.X_, nd.y_ = preprocess_ops(nd.X_, nd.y_)
+
+        end
     end
 
     # ids = [i + 1:nexti]
