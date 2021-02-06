@@ -1,5 +1,6 @@
 module GDH
 
-include("ops.jl"); export DataHandler, NetworkData
+include("dh.jl"); export DataHandler
+include("nd.jl"); export NetworkData
 
 end # module
