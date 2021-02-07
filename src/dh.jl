@@ -1,4 +1,4 @@
-export iterate, length, NetworkData, DataHandler
+export DataHandler
 
 using FunctionLib
 import Base: length, iterate, vcat
@@ -16,19 +16,19 @@ mutable struct DataHandler{T} <: AbstractDataHandler
     # and fetch the directories of the individual datum and label;
     # finally, should return an array of tuples consisting of the directories
     # and the labels.
-    data_read_method::Array{FunctionHolder} 
+    data_read_method::FunctionHolder 
     # Array of tuples consisting of functions and its arguments
-    data_load_method::Array{FunctionHolder}
+    data_load_method::FunctionHolder
     data_preprocess_method::Array{FunctionHolder}
 
 
-
+    
     # Uninitialized construction
     DataHandler() = new(Array{FunctionHolder}[], Array{FunctionHolder}[], Array{FunctionHolder}[])
 end
 
-function DataHandler(is_online::Bool; data_read_method::Array{FunctionHolder} = Array{FunctionHolder}[],
-    data_load_method::Array{FunctionHolder} = Array{FunctionHolder}[],
+function DataHandler(is_online::Bool; data_read_method::FunctionHolder = undef,
+    data_load_method::FunctionHolder = undef,
     data_preprocess_method::Array{FunctionHolder = Array{FunctionHolder}[]}
 )
 
@@ -38,13 +38,13 @@ end
 
 function add_data_read_method(dh::AbstractDataHandler, method::FunctionHolder)
 
-    push!(dh.data_read_method, method)
+    dh.data_read_method = method
 
 end
 
 function add_data_load_method(dh::AbstractDataHandler, method::FunctionHolder)
 
-    push!(dh.data_load_method, method)
+    dh.data_load_method = method
 
 end
 

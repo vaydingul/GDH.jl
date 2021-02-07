@@ -1,3 +1,5 @@
+export NetworkData
+
 abstract type AbstractNetworkData end
 mutable struct NetworkData{T} <: AbstractNetworkData
 
