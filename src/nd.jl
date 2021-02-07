@@ -1,10 +1,9 @@
-
-mutable struct NetworkData{T}
+abstract type AbstractNetworkData end
+mutable struct NetworkData{T} <: AbstractNetworkData
 
     data_handler::DataHandler
     
     data::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
-    label_dict#::Dict{Int8,String}
 
     shuffle::Bool
     read_rate
@@ -16,36 +15,37 @@ mutable struct NetworkData{T}
     X_ # Temporary data fields to be stored in CPU
     y_ # Temporary data fields to be stored in CPU
 
+    #label_dict#::Dict{Int8,String}
 
 
 end
 
-function NetworkData(data_handler,main_path; shuffle::Bool=true, read_rate=1.0, read_count = nothing, batchsize::Int=1, atype=Array{Float32}) 
+function NetworkData(data_handler,main_path; shuffle::Bool=true, read_rate=1.0, batchsize::Int=1, atype=Array{Float32}) 
     #= 
          Custom constructor =#
 
     data = data_handler.data_read_method[1](main_path)
 
-    read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
+    #read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
     
     # refresh_rate = floor(Int, read_count / batchsize)
 
-    NetworkData{atype}(data_handler,data, nothing, shuffle, read_rate,read_count, batchsize, atype, nothing, nothing)
+    NetworkData{atype}(data_handler,data, shuffle, read_rate, batchsize, atype, nothing, nothing)
 
 
 end
 
 
-function NetworkData{T}(data, nd::NetworkData{T}) where T <: GenericDataHandler
+function NetworkData{T}(data, nd::NetworkData{T}) where T <: AbstractDataHandler
 
-    read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
+    #read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
 
-    return NetworkData{T}(data, nd.label_dict, nd.shuffle, nd.read_rate,read_count, nd.batchsize, nd.atype, nothing, nothing)
+    return NetworkData{T}(nd.data_handler, data, nd.shuffle, nd.read_rate, nd.batchsize, nd.atype, nothing, nothing)
 
 end
 
 
-function length(nd::NetworkData{T}) where T <: GenericDataHandler
+function length(nd::NetworkData{T}) where T <: AbstractDataHandler
      
     part = ceil(Int, length(nd.data) / nd.read_count)
     

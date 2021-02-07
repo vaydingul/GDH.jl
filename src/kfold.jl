@@ -11,32 +11,30 @@ struct kfold{T}
 
 end
 
+"""
+    General constructor for kfold_ struct
 
+    kfold
+        - It seperated the given data into kfold_ for training
+
+    Example:
+        kf = kfold(X_train, y_train; fold = 3, atype = a_type(Float32))
+
+    Input:
+        X = Input data of the model
+        y = Desired output data of the model
+        fold = Fold Construct
+        minibatch_size = Minibatch size that will be included in each fold
+        atype = Array type that will be passes
+        shuffle = Shuffling option
+
+    Output:
+        result = Loss and misclassification errors of train and test dataset 
+"""
+kfold
 
 function kfold(X::D; fold=10) where D
-    #= 
-        General constructor for kfold_ struct
-
-        kfold
-            - It seperated the gicen data into kfold_ for training
-
-        Example:
-            kf = kfold(X_train, y_train; fold = 3, atype = a_type(Float32))
-
-        Input:
-            X = Input data of the model
-            y = Desired output data of the model
-            fold = Fold Construct
-            minibatch_size = Minibatch size that will be included in each fold
-            atype = Array type that will be passes
-            shuffle = Shuffling option
-
-        Output:
-            result = Loss and misclassification errors of train and test dataset =#
     
-
-
-
     folds_ = Array{Tuple{D, D}}([])
     # Get size of the input data
     n = length(X.data)#[end]
