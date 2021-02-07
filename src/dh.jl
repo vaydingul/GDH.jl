@@ -20,17 +20,17 @@ mutable struct DataHandler{T} <: AbstractDataHandler
     # Array of tuples consisting of functions and its arguments
     data_load_method::FunctionHolder
     data_preprocess_method::Array{FunctionHolder}
-
+    
+    #DataHandler() = new()
 
     
     # Uninitialized construction
-    DataHandler() = new(Array{FunctionHolder}[], Array{FunctionHolder}[], Array{FunctionHolder}[])
+    #DataHandler() = new(Array{FunctionHolder}[], Array{FunctionHolder}[], Array{FunctionHolder}[])
 end
 
-function DataHandler(is_online::Bool; data_read_method::FunctionHolder = undef,
-    data_load_method::FunctionHolder = undef,
-    data_preprocess_method::Array{FunctionHolder = Array{FunctionHolder}[]}
-)
+function DataHandler(is_online::Bool,   data_read_method::FunctionHolder,
+                                        data_load_method::FunctionHolder;
+                                        data_preprocess_method::Array{FunctionHolder} = Array{FunctionHolder}([]))
 
 is_online ? DataHandler{Online}(data_read_method, data_load_method, data_preprocess_method) : DataHandler{Offline}(data_read_method, data_load_method, data_preprocess_method)
 

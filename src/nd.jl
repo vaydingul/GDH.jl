@@ -3,36 +3,60 @@ export NetworkData
 abstract type AbstractNetworkData end
 mutable struct NetworkData{T} <: AbstractNetworkData
 
-    data_handler::DataHandler
+    data_handler::AbstractDataHandler
     
     data::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
 
     shuffle::Bool
-    read_rate
-    read_count# Whether all data will be read in once or will be iterated through
     
     batchsize::Int # Batchsize during training
     atype::Type
 
-    X_ # Temporary data fields to be stored in CPU
-    y_ # Temporary data fields to be stored in CPU
+    X # Temporary data fields to be stored in CPU
+    y # Temporary data fields to be stored in CPU
 
+
+    #read_rate
+    #read_count# Whether all data will be read in once or will be iterated through
+    
     #label_dict#::Dict{Int8,String}
 
 
 end
 
-function NetworkData(data_handler,main_path; shuffle::Bool=true, read_rate=1.0, batchsize::Int=1, atype=Array{Float32}) 
+function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}) where T <: AbstractStatus
     #= 
          Custom constructor =#
 
     data = data_handler.data_read_method[1](main_path)
-
-    #read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
     
-    # refresh_rate = floor(Int, read_count / batchsize)
+    if T === Online
 
-    NetworkData{atype}(data_handler,data, shuffle, read_rate, batchsize, atype, nothing, nothing)
+        #read_count_ = read_count === nothing ? floor(Int, length(data) * read_rate) : read_count # Number of data points to read each time
+        
+        # refresh_rate = floor(Int, read_count / batchsize)
+
+        NetworkData{T}(data_handler,data, shuffle, read_rate, batchsize, atype, nothing, nothing)
+
+    else
+
+        for datum in data
+
+            push!(X, data_handler.data_load_method(datum[1]))
+	        push!(y, datum[2])
+
+        end
+
+        for fh in data_handler.data_preprocess_method
+
+            X, y = fh(X, y) 
+
+        end
+
+        
+        NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X, y)
+
+    end
 
 
 end
@@ -42,13 +66,26 @@ function NetworkData{T}(data, nd::NetworkData{T}) where T <: AbstractDataHandler
 
     #read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
 
-    return NetworkData{T}(nd.data_handler, data, nd.shuffle, nd.read_rate, nd.batchsize, nd.atype, nothing, nothing)
+    return NetworkData{T}(nd.data_handler, data, nd.shuffle, nd.batchsize, nd.atype, nothing, nothing)
 
 end
 
 
-function length(nd::NetworkData{T}) where T <: AbstractDataHandler
+
+
+function length(nd::NetworkData{T}) where T <: AbstractStatus
      
+    if T === Active
+
+        return length(nd.data) / nd.batchsize
+
+    else
+
+        return length(nd.X) / nd.batchsize
+    
+    end
+
+    #=
     part = ceil(Int, length(nd.data) / nd.read_count)
     
     if nd.X_ !== nothing
@@ -57,6 +94,7 @@ function length(nd::NetworkData{T}) where T <: AbstractDataHandler
     else
         return part
     end
+    =#
     #=
     l = 0
 
@@ -76,6 +114,40 @@ function length(nd::NetworkData{T}) where T <: AbstractDataHandler
 end
 
 
+function iterate(nd::NetworkData{T}, i = 0) where T <: Online
+
+
+
+    if length(nd.data) - i <= 0
+        return nothing
+    end
+
+    nexti = min(i + nd.batchsize, length(nd.data))
+
+    ids = [i+1:nexti]
+
+
+    xbatch = try convert(d.atype, reshape(d.x[:,ids],d.xsize[1:end-1]...,length(ids)))
+    catch; throw(DimensionMismatch("X tensor not compatible with size=$(d.xsize) and type=$(d.xtype)")); end
+    if d.y === nothing
+        return (xbatch,nexti)
+    else
+        ybatch = try convert(d.ytype, reshape(d.y[:,ids],d.ysize[1:end-1]...,length(ids)))
+        catch; throw(DimensionMismatch("Y tensor not compatible with size=$(d.ysize) and type=$(d.ytype)")); end
+        return ((xbatch,ybatch),nexti)
+    end
+
+
+end
+
+
+
+
+
+
+
+
+#=
 function iterate(nd::NetworkData, state=(0, 0, true))
 
     s1, s2, s3 = state
@@ -162,7 +234,7 @@ function iterate(nd::NetworkData, state=(0, 0, true))
     return ((Xbatch, ybatch), next_state)
     
 end
-
+=#
 
 
 #= 

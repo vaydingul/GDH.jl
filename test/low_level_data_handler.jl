@@ -13,19 +13,21 @@ TEST_DATA_PATH_2 = "test/example_data/bar/"
 @info "Initialization of the objects that will be used in testing."
 
 # DataHandler object empty initialization
-dh = DataHandler()
+dh = DataHandler(false, FunctionHolder(read_data, (TEST_DATA_PATH_1), Dict()),
+						FunctionHolder(readdlm, (',', Float32), Dict()))
+#dh = DataHandler(false)
 # Addition of the necessary function to the handler
-add_data_read_method(dh, FunctionHolder(read_data, (TEST_DATA_PATH_1), Dict()))
-add_data_load_method(dh, FunctionHolder(readdlm, (',', Float32), Dict()))
+#add_data_read_method(dh, FunctionHolder(read_data, (TEST_DATA_PATH_1), Dict()))
+#add_data_load_method(dh, FunctionHolder(readdlm, (',', Float32), Dict()))
 add_data_preprocess_method(dh, FunctionHolder(preprocess_data, (), Dict()))	
 
 # Low level function operations
 X, y = [], []
-data = dh.data_read_method[1]()
+data = dh.data_read_method()
 
 for datum in data
 
-	push!(X, dh.data_load_method[1](datum[1]))
+	push!(X, dh.data_load_method(datum[1]))
 	push!(y, datum[2])
 
 end
