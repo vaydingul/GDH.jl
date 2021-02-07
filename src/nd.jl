@@ -31,10 +31,8 @@ mutable struct NetworkData{T} <: AbstractNetworkData
 
 end
 
-function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}, partial=false,xsize=size(x),ysize=size(y),
-                    # default xtype, ytype should be robust to ndims change:
-                    xtype = (eltype(x) <: AbstractFloat ? atype() : (typeof(x).name.wrapper){eltype(x)}),
-                    ytype = (eltype(y) <: AbstractFloat ? atype() : (typeof(y).name.wrapper){eltype(y)})) where T <: AbstractStatus
+function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}, partial=false,
+                    xsize = nothing, ysize = nothing, xtype = nothing, ytype = nothing) where T <: AbstractStatus
             
     data = data_handler.data_read_method[1](main_path)
     
@@ -44,7 +42,8 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
         
         # refresh_rate = floor(Int, read_count / batchsize)
 
-        NetworkData{T}(data_handler,data, shuffle, read_rate, batchsize, atype, nothing, nothing)
+        n = length(data)
+        X2 = y2 = nothing
 
     else
 
@@ -61,16 +60,26 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
 
         end
 
-        nx = size(x)[end]
-        if nx != size(y)[end]; throw(DimensionMismatch()); end
-        x2 = reshape(x, :, nx)
+
+
+        xsize = xsize === nothing && size(X)
+        ysize = ysize === nothing && size(y)
+        xtype = xtype === nothing && (eltype(X) <: AbstractFloat ? atype() : (typeof(X).name.wrapper){eltype(x)})
+        ytype = ytype === nothing && (eltype(y) <: AbstractFloat ? atype() : (typeof(y).name.wrapper){eltype(y)})
+
+
+        n = size(x)[end]
+        X2 = reshape(X, :, nx)
         y2 = reshape(y, :, nx)
-        imax = partial ? nx : nx - batchsize + 1
+        if n != size(y)[end]; throw(DimensionMismatch()); end
 
-        NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X, y, length, partial, imax, xsize, ysize, xtype, ytype)
 
-    end
+    end 
 
+    
+    imax = partial ? n : n - batchsize + 1
+    
+    NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X2, y2, n, partial, imax, xsize, ysize, xtype, ytype)
 
 end
 
@@ -88,15 +97,9 @@ end
 
 function length(nd::NetworkData{T}) where T <: AbstractStatus
      
-    if T === Active
 
-        return length(nd.data) / nd.batchsize
+    return nd.length / nd.batchsize
 
-    else
-
-        return length(nd.X) / nd.batchsize
-    
-    end
 
     #=
     part = ceil(Int, length(nd.data) / nd.read_count)
@@ -163,6 +166,55 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
 
 end
 
+
+function iterate(nd::NetworkData{T}, i = 0) where T <: Online
+
+    if i >= nd.imax
+        return nothing
+    end
+    
+    nexti = min(i + nd.batchsize, nd.length)
+
+    ids = i+1:nexti
+
+    for ix in ids
+
+        push!(X, data_handler.data_load_method(nd.data[ix][1]))
+        push!(y, nd.data[ix][2])
+
+    end
+
+    for fh in data_handler.data_preprocess_method
+
+        X, y = fh(X, y) 
+
+    end
+
+    xbatch = try 
+        
+        convert(nd.xtype, reshape(X,nd.xsize[1:end-1]...,length(ids)))
+
+    catch
+
+        throw(DimensionMismatch("X tensor not compatible with size=$(nd.xsize) and type=$(nd.xtype)"))
+
+    end
+
+    
+    ybatch = try 
+
+        convert(nd.ytype, reshape(y,nd.ysize[1:end-1]...,length(ids)))
+
+    catch
+
+        throw(DimensionMismatch("Y tensor not compatible with size=$(nd.ysize) and type=$(nd.ytype)"))
+        
+    end
+
+    return ((xbatch,ybatch),nexti)
+    
+
+end
 
 
 
