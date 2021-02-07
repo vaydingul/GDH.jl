@@ -6,8 +6,8 @@ import Base: length, iterate, vcat
 abstract type AbstractDataHandler end
 abstract type AbstractStatus end
 
-struct Online; end
-struct Offline; end
+struct Online <: AbstractStatus; end
+struct Offline <: AbstractStatus; end
 
 
 mutable struct DataHandler{T} <: AbstractDataHandler
