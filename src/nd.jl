@@ -14,7 +14,14 @@ mutable struct NetworkData{T} <: AbstractNetworkData
 
     X # Temporary data fields to be stored in CPU
     y # Temporary data fields to be stored in CPU
-
+    
+    length
+    partial
+    imax
+    xsize
+    ysize
+    xtype
+    ytype
 
     #read_rate
     #read_count# Whether all data will be read in once or will be iterated through
@@ -24,10 +31,11 @@ mutable struct NetworkData{T} <: AbstractNetworkData
 
 end
 
-function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}) where T <: AbstractStatus
-    #= 
-         Custom constructor =#
-
+function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}, partial=false,xsize=size(x),ysize=size(y),
+                    # default xtype, ytype should be robust to ndims change:
+                    xtype = (eltype(x) <: AbstractFloat ? atype() : (typeof(x).name.wrapper){eltype(x)}),
+                    ytype = (eltype(y) <: AbstractFloat ? atype() : (typeof(y).name.wrapper){eltype(y)})) where T <: AbstractStatus
+            
     data = data_handler.data_read_method[1](main_path)
     
     if T === Online
@@ -53,8 +61,13 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
 
         end
 
-        
-        NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X, y)
+        nx = size(x)[end]
+        if nx != size(y)[end]; throw(DimensionMismatch()); end
+        x2 = reshape(x, :, nx)
+        y2 = reshape(y, :, nx)
+        imax = partial ? nx : nx - batchsize + 1
+
+        NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X, y, length, partial, imax, xsize, ysize, xtype, ytype)
 
     end
 
@@ -62,7 +75,7 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
 end
 
 
-function NetworkData{T}(data, nd::NetworkData{T}) where T <: AbstractDataHandler
+function NetworkData{T}(data, nd::NetworkData{T}) where T <: AbstractStatus
 
     #read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
 
@@ -114,29 +127,39 @@ function length(nd::NetworkData{T}) where T <: AbstractStatus
 end
 
 
-function iterate(nd::NetworkData{T}, i = 0) where T <: Online
+function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
 
-
-
-    if length(nd.data) - i <= 0
+    if i >= nd.imax
         return nothing
     end
+    
+    nexti = min(i + nd.batchsize, nd.length)
 
-    nexti = min(i + nd.batchsize, length(nd.data))
+    ids = i+1:nexti
 
-    ids = [i+1:nexti]
+    xbatch = try 
+        
+        convert(nd.xtype, reshape(nd.x[:,ids],nd.xsize[1:end-1]...,length(ids)))
 
+    catch
 
-    xbatch = try convert(d.atype, reshape(d.x[:,ids],d.xsize[1:end-1]...,length(ids)))
-    catch; throw(DimensionMismatch("X tensor not compatible with size=$(d.xsize) and type=$(d.xtype)")); end
-    if d.y === nothing
-        return (xbatch,nexti)
-    else
-        ybatch = try convert(d.ytype, reshape(d.y[:,ids],d.ysize[1:end-1]...,length(ids)))
-        catch; throw(DimensionMismatch("Y tensor not compatible with size=$(d.ysize) and type=$(d.ytype)")); end
-        return ((xbatch,ybatch),nexti)
+        throw(DimensionMismatch("X tensor not compatible with size=$(nd.xsize) and type=$(nd.xtype)"))
+
     end
 
+    
+    ybatch = try 
+
+        convert(nd.ytype, reshape(nd.y[:,ids],nd.ysize[1:end-1]...,length(ids)))
+
+    catch
+
+        throw(DimensionMismatch("Y tensor not compatible with size=$(nd.ysize) and type=$(nd.ytype)"))
+        
+    end
+
+    return ((xbatch,ybatch),nexti)
+    
 
 end
 
