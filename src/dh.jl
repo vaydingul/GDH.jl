@@ -1,7 +1,7 @@
 export DataHandler
 
-using FunctionLib
-import Base: length, iterate, vcat
+using FunctionLib: FunctionHolder
+import Base: length, iterate, vcat, show
 
 abstract type AbstractDataHandler end
 abstract type AbstractStatus end
@@ -62,11 +62,11 @@ function show(io::IO, dh::DataHandler{T}) where T<:AbstractStatus
     println("Data Reading Method => ", dh.data_read_method)
     println("Data Loading Method => ", dh.data_load_method)
     println("Data Preprocessing Method => ", dh.data_preprocess_method, "\n")
+
+end
     
-    end
-    
-    function show(io::IO, ::MIME"text/plain", nd::DataHandler{T}) where T <: AbstractStatus
+function show(io::IO, ::MIME"text/plain", dh::DataHandler{T}) where T <: AbstractStatus
         
-        show(io, d)
+        show(io, dh)
     
-    end
+end

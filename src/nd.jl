@@ -97,42 +97,6 @@ end
 
 
 
-
-function length(nd::NetworkData{T}) where T <: AbstractStatus
-     
-
-    return nd.length / nd.batchsize
-
-
-    #=
-    part = ceil(Int, length(nd.data) / nd.read_count)
-    
-    if nd.X_ !== nothing
-        each_part = ceil(Int, length(nd.y_) / nd.batchsize)
-        return part * each_part
-    else
-        return part
-    end
-    =#
-    #=
-    l = 0
-
-    part_cnt, rem_cnt = divrem(length(nd.data), nd.read_count)
-    
-    l = ceil(Int, nd.read_count / nd.batchsize) * part_cnt
-    
-    l += ceil(Int, rem_cnt / nd.batchsize)
-
-    return l
-    =#
-
-
-    #= 
-    n = length(nd.data) / nd.batchsize
-    ceil(Int,n) =#
-end
-
-
 function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
 
     if i >= nd.imax
@@ -145,7 +109,7 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
 
     xbatch = try 
         
-        convert(nd.xtype, reshape(nd.x[:,ids],nd.xsize[1:end-1]...,length(ids)))
+        convert(nd.xtype, reshape(nd.X[:,ids],nd.xsize[1:end-1]...,length(ids)))
 
     catch
 
@@ -225,6 +189,44 @@ end
 
 
 
+function length(nd::NetworkData{T}) where T <: AbstractStatus
+     
+    len = nd.length / nd.batchsize
+    nd.partial ? ceil(Int,len) : floor(Int,len)
+
+
+    #=
+    part = ceil(Int, length(nd.data) / nd.read_count)
+    
+    if nd.X_ !== nothing
+        each_part = ceil(Int, length(nd.y_) / nd.batchsize)
+        return part * each_part
+    else
+        return part
+    end
+    =#
+    #=
+    l = 0
+
+    part_cnt, rem_cnt = divrem(length(nd.data), nd.read_count)
+    
+    l = ceil(Int, nd.read_count / nd.batchsize) * part_cnt
+    
+    l += ceil(Int, rem_cnt / nd.batchsize)
+
+    return l
+    =#
+
+
+    #= 
+    n = length(nd.data) / nd.batchsize
+    ceil(Int,n) =#
+end
+
+
+
+
+
 
 
 
@@ -250,7 +252,7 @@ end
 
 function show(io::IO, ::MIME"text/plain", nd::NetworkData{T}) where T <: AbstractStatus
     
-    show(io, d)
+    show(io, nd)
 
 end
 

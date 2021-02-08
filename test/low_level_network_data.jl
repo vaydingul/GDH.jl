@@ -4,6 +4,7 @@ include("functions.jl")
 using Test
 using GDH: DataHandler, add_data_read_method, add_data_load_method, add_data_preprocess_method
 using GDH: NetworkData
+using FunctionLib: FunctionHolder
 using FunctionLib, GDH
 using DelimitedFiles: readdlm
 
@@ -22,12 +23,18 @@ add_data_preprocess_method(dh, FunctionHolder(preprocess_data, (), Dict()))
 
 nd = NetworkData(dh, TEST_DATA_PATH_1)
 
-@testset "Offline Data Handler" begin
+@testset "Offline Data Handler Data Check" begin
 	
 	X = Any[Float32[1.0 2.0 3.0],Float32[4.0 5.0 6.0],Float32[7.0 8.0 9.0],Float32[10.0 11.0 12.0]]
 	y = [0 0 1 1]
 	
 	@test nd.X == hcat(X'...).^2 .+ 1
 	@test nd.y == y.^2 .+ 2
+
+end
+
+@testset "Offline Data Handler Iterator Check" begin
+
+@show	nd_iterated = collect(nd)
 
 end
