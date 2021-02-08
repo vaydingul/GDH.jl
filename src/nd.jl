@@ -230,7 +230,7 @@ end
 
 function show(io::IO, nd::NetworkData{T}) where T<:AbstractStatus
 
-println()
+println("\n$T Network Data:\n")
 println("DataHandler => ", nd.data_handler)
 println("Data => ", nd.data)
 println("Shuffle Option => ", nd.shuffle)
@@ -244,8 +244,7 @@ println("imax => ", nd.imax)
 println("X Tensor Size => ", nd.xsize)
 println("y Tensor Size => ", nd.ysize)
 println("X Tensor Type => ", nd.xtype)
-println("y Tensor Type => ", nd.ytype)
-println()
+println("y Tensor Type => ", nd.ytype,"\n")
 
 end
 
