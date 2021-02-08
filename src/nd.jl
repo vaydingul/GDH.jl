@@ -1,4 +1,6 @@
 export NetworkData
+import Base: iterate, show
+
 
 abstract type AbstractNetworkData end
 mutable struct NetworkData{T} <: AbstractNetworkData
@@ -31,10 +33,10 @@ mutable struct NetworkData{T} <: AbstractNetworkData
 
 end
 
-function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true, batchsize::Int=1, atype=Array{Float32}, partial=false,
+function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=false, batchsize::Int=1, atype=Array{Float32}, partial=false,
                     xsize = nothing, ysize = nothing, xtype = nothing, ytype = nothing) where T <: AbstractStatus
             
-    data = data_handler.data_read_method[1](main_path)
+    data = data_handler.data_read_method(main_path)
     
     if T === Online
 
@@ -46,11 +48,12 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
         X2 = y2 = nothing
 
     else
+        X , y = [], []
 
         for datum in data
 
-            push!(X, data_handler.data_load_method(datum[1]))
-	        push!(y, datum[2])
+        push!(X, data_handler.data_load_method(datum[1]))
+	    push!(y, datum[2])
 
         end
 
@@ -64,13 +67,13 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=true,
 
         xsize = xsize === nothing && size(X)
         ysize = ysize === nothing && size(y)
-        xtype = xtype === nothing && (eltype(X) <: AbstractFloat ? atype() : (typeof(X).name.wrapper){eltype(x)})
-        ytype = ytype === nothing && (eltype(y) <: AbstractFloat ? atype() : (typeof(y).name.wrapper){eltype(y)})
+        xtype = xtype === nothing && (eltype(X) <: AbstractFloat ? atype : (typeof(X).name.wrapper){eltype(x)})
+        ytype = ytype === nothing && (eltype(y) <: AbstractFloat ? atype : (typeof(y).name.wrapper){eltype(y)})
 
 
-        n = size(x)[end]
-        X2 = reshape(X, :, nx)
-        y2 = reshape(y, :, nx)
+        n = size(X)[end]
+        X2 = reshape(X, :, n)
+        y2 = reshape(y, :, n)
         if n != size(y)[end]; throw(DimensionMismatch()); end
 
 
@@ -166,6 +169,7 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
 
 end
 
+# TODO: Whole iterate in one function ?
 
 function iterate(nd::NetworkData{T}, i = 0) where T <: Online
 
@@ -218,6 +222,38 @@ end
 
 
 
+
+
+
+
+
+
+function show(io::IO, nd::NetworkData{T}) where T<:AbstractStatus
+
+println()
+println("DataHandler => ", nd.data_handler)
+println("Data => ", nd.data)
+println("Shuffle Option => ", nd.shuffle)
+println("Batchsize => ", nd.batchsize)
+println("Array Type => ", nd.atype)
+println("X Tensor => ", nd.X)
+println("y Tensor => ", nd.y)
+println("Length => ", nd.length)
+println("Partial Option => ", nd.partial)
+println("imax => ", nd.imax)
+println("X Tensor Size => ", nd.xsize)
+println("y Tensor Size => ", nd.ysize)
+println("X Tensor Type => ", nd.xtype)
+println("y Tensor Type => ", nd.ytype)
+println()
+
+end
+
+function show(io::IO, ::MIME"text/plain", nd::NetworkData{T}) where T <: AbstractStatus
+    
+    show(io, d)
+
+end
 
 
 

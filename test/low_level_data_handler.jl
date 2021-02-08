@@ -68,6 +68,6 @@ X_, y_ = dh.data_preprocess_method[1](X, y)
 		
 		@test X_ == hcat(X'...).^2 .+ 1
 		@test y_ == y.^2 .+ 2
-
+		
 	end
 end
