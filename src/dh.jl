@@ -53,3 +53,20 @@ function add_data_preprocess_method(dh::AbstractDataHandler, method::FunctionHol
     push!(dh.data_preprocess_method, method)
 
 end
+
+
+
+function show(io::IO, dh::DataHandler{T}) where T<:AbstractStatus
+
+    println("\n$T Data Handler:\n")
+    println("Data Reading Method => ", dh.data_read_method)
+    println("Data Loading Method => ", dh.data_load_method)
+    println("Data Preprocessing Method => ", dh.data_preprocess_method, "\n")
+    
+    end
+    
+    function show(io::IO, ::MIME"text/plain", nd::DataHandler{T}) where T <: AbstractStatus
+        
+        show(io, d)
+    
+    end
