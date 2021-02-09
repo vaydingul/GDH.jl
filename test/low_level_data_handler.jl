@@ -10,7 +10,6 @@ using DelimitedFiles: readdlm
 TEST_DATA_PATH_1 = ["test/example_data/foo/"]
 TEST_DATA_PATH_2 = "test/example_data/bar/"
 
-@info "Initialization of the objects that will be used in testing."
 
 # DataHandler object empty initialization
 dh = DataHandler(false, FunctionHolder(read_data, (TEST_DATA_PATH_1), Dict()),

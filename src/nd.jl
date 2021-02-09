@@ -9,32 +9,25 @@ mutable struct NetworkData{T} <: AbstractNetworkData
     
     data::Array{Tuple{String,Int8}} # Paths of the individual data point and labels
 
-    shuffle::Bool
-    
-    batchsize::Int # Batchsize during training
-    atype::Type
-
     X # Temporary data fields to be stored in CPU
     y # Temporary data fields to be stored in CPU
-    
+
+    shuffle::Bool
+    batchsize::Int # Batchsize during training
     length
     partial
     imax
+
+    atype
     xsize
     ysize
     xtype
     ytype
 
-    #read_rate
-    #read_count# Whether all data will be read in once or will be iterated through
-    
-    #label_dict#::Dict{Int8,String}
-
-
 end
 
-function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=false, batchsize::Int=1, atype=Array{Float32}, partial=false,
-                    xsize = nothing, ysize = nothing, xtype = nothing, ytype = nothing) where T <: AbstractStatus
+function NetworkData(data_handler::DataHandler{T}, main_path; shuffle::Bool=false, batchsize::Int=1, partial=false,
+                    atype = Array{Float32}, xsize = nothing, ysize = nothing, xtype = nothing, ytype = nothing) where T <: AbstractStatus
             
     data = data_handler.data_read_method(main_path)
     
@@ -48,6 +41,7 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=false
         X2 = y2 = nothing
 
     else
+
         X , y = [], []
 
         for datum in data
@@ -62,8 +56,6 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=false
             X, y = fh(X, y) 
 
         end
-
-
 
         xsize = xsize === nothing && size(X)
         ysize = ysize === nothing && size(y)
@@ -82,19 +74,19 @@ function NetworkData(data_handler::DataHandler{T},main_path; shuffle::Bool=false
     
     imax = partial ? n : n - batchsize + 1
     
-    NetworkData{T}(data_handler,data, shuffle, batchsize, atype, X2, y2, n, partial, imax, xsize, ysize, xtype, ytype)
+    NetworkData{T}(data_handler,data, X2, y2, shuffle, batchsize, n, partial, imax, atype, xsize, ysize, xtype, ytype)
 
 end
 
-
+#=
 function NetworkData{T}(data, nd::NetworkData{T}) where T <: AbstractStatus
 
     #read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
 
-    return NetworkData{T}(nd.data_handler, data, nd.shuffle, nd.batchsize, nd.atype, nothing, nothing)
+    return NetworkData{T}(nd.data_handler, data, nd.shuffle, nd.batchsize, nothing, nothing)
 
 end
-
+=#
 
 
 function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
@@ -105,11 +97,11 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
     
     nexti = min(i + nd.batchsize, nd.length)
 
-    ids = i+1:nexti
+    ids = i + 1:nexti
 
     xbatch = try 
         
-        convert(nd.xtype, reshape(nd.X[:,ids],nd.xsize[1:end-1]...,length(ids)))
+        convert(nd.xtype, reshape(nd.X[:, ids], nd.xsize[1:end-1]..., length(ids)))
 
     catch
 
@@ -120,7 +112,7 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
     
     ybatch = try 
 
-        convert(nd.ytype, reshape(nd.y[:,ids],nd.ysize[1:end-1]...,length(ids)))
+        convert(nd.ytype, reshape(nd.y[:, ids], nd.ysize[1:end-1]..., length(ids)))
 
     catch
 
@@ -128,7 +120,7 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Offline
         
     end
 
-    return ((xbatch,ybatch),nexti)
+    return ((xbatch,ybatch), nexti)
     
 
 end
@@ -145,22 +137,32 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Online
 
     ids = i+1:nexti
 
+    X, y = [], []
+
     for ix in ids
 
-        push!(X, data_handler.data_load_method(nd.data[ix][1]))
+        push!(X, nd.data_handler.data_load_method(nd.data[ix][1]))
         push!(y, nd.data[ix][2])
 
     end
 
-    for fh in data_handler.data_preprocess_method
+    for fh in nd.data_handler.data_preprocess_method
 
         X, y = fh(X, y) 
 
     end
 
+    xbatch = nd.xsize !== nothing ? reshape(X, nd.xsize[1:end-1]..., length(ids)) : X
+    ybatch = nd.ysize !== nothing ? reshape(y, nd.ysize[1:end-1]..., length(ids)) : y
+    xbatch = nd.xtype !== nothing ? convert(nd.xtype, xbatch) : xbatch
+    ybatch = nd.ytype !== nothing ? convert(nd.ytype, ybatch) : ybatch
+
+
+
+#=
     xbatch = try 
         
-        convert(nd.xtype, reshape(X,nd.xsize[1:end-1]...,length(ids)))
+        convert(nd.xtype, reshape(X, nd.xsize[1:end-1]..., length(ids)))
 
     catch
 
@@ -171,16 +173,52 @@ function iterate(nd::NetworkData{T}, i = 0) where T <: Online
     
     ybatch = try 
 
-        convert(nd.ytype, reshape(y,nd.ysize[1:end-1]...,length(ids)))
+        convert(nd.ytype, reshape(y, nd.ysize[1:end-1]..., length(ids)))
 
     catch
 
         throw(DimensionMismatch("Y tensor not compatible with size=$(nd.ysize) and type=$(nd.ytype)"))
         
     end
+=#
 
     return ((xbatch,ybatch),nexti)
     
+
+end
+
+
+function length(nd::NetworkData{T}) where T <: AbstractStatus
+     
+    len = nd.length / nd.batchsize
+    nd.partial ? ceil(Int,len) : floor(Int,len)
+
+end
+
+
+function show(io::IO, nd::NetworkData{T}) where T<:AbstractStatus
+
+println("\n$T Network Data:\n")
+println("DataHandler: ", nd.data_handler)
+println("Data: ", nd.data)
+println("Shuffle Option: ", nd.shuffle)
+println("Batchsize: ", nd.batchsize)
+println("Array Type: ", nd.atype)
+println("X Tensor: ", nd.X)
+println("y Tensor: ", nd.y)
+println("Length: ", nd.length)
+println("Partial Option: ", nd.partial)
+println("imax: ", nd.imax)
+println("X Tensor Size: ", nd.xsize)
+println("y Tensor Size: ", nd.ysize)
+println("X Tensor Type: ", nd.xtype)
+println("y Tensor Type: ", nd.ytype,"\n")
+
+end
+
+function show(io::IO, ::MIME"text/plain", nd::NetworkData{T}) where T <: AbstractStatus
+    
+    show(io, nd)
 
 end
 
@@ -189,6 +227,20 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+############### DEPRECATED CODE ####################################################
+#=
 function length(nd::NetworkData{T}) where T <: AbstractStatus
      
     len = nd.length / nd.batchsize
@@ -223,40 +275,7 @@ function length(nd::NetworkData{T}) where T <: AbstractStatus
     ceil(Int,n) =#
 end
 
-
-
-
-
-
-
-
-function show(io::IO, nd::NetworkData{T}) where T<:AbstractStatus
-
-println("\n$T Network Data:\n")
-println("DataHandler => ", nd.data_handler)
-println("Data => ", nd.data)
-println("Shuffle Option => ", nd.shuffle)
-println("Batchsize => ", nd.batchsize)
-println("Array Type => ", nd.atype)
-println("X Tensor => ", nd.X)
-println("y Tensor => ", nd.y)
-println("Length => ", nd.length)
-println("Partial Option => ", nd.partial)
-println("imax => ", nd.imax)
-println("X Tensor Size => ", nd.xsize)
-println("y Tensor Size => ", nd.ysize)
-println("X Tensor Type => ", nd.xtype)
-println("y Tensor Type => ", nd.ytype,"\n")
-
-end
-
-function show(io::IO, ::MIME"text/plain", nd::NetworkData{T}) where T <: AbstractStatus
-    
-    show(io, nd)
-
-end
-
-
+=#
 
 
 #=
