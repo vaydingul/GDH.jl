@@ -1,11 +1,3 @@
-# Include necessary custom functions
-include("functions.jl")
-# Necessary libraries
-using Test
-using GDH: DataHandler, add_data_read_method, add_data_load_method, add_data_preprocess_method
-using FunctionLib, GDH
-using DelimitedFiles: readdlm
-
 # Dummy test data paths
 TEST_DATA_PATH_1 = ["test/example_data/foo/"]
 TEST_DATA_PATH_2 = "test/example_data/bar/"
