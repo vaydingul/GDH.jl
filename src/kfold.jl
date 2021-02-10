@@ -12,33 +12,32 @@ struct kfold{T}
 end
 
 """
-    General constructor for kfold_ struct
+    General constructor for kfold struct
 
     kfold
-        - It seperated the given data into kfold_ for training
+        - It seperated the given data into kfold for training
 
     Example:
-        kf = kfold(X_train, y_train; fold = 3, atype = a_type(Float32))
+        kf = kfold(nd ; fold = 3)
 
     Input:
-        X = Input data of the model
-        y = Desired output data of the model
-        fold = Fold Construct
-        minibatch_size = Minibatch size that will be included in each fold
-        atype = Array type that will be passes
-        shuffle = Shuffling option
+        nd = Abstract NetworkData object
+        fold = Fold count
 
     Output:
-        result = Loss and misclassification errors of train and test dataset 
+        result = Constructed kfold object 
 """
 kfold
 
-function kfold(nd::D{S}; fold=10) where {D <: AbstractNetworkData, S <: Online}
+function kfold(nd::NetworkData{S}; fold=10)  where S <: Online
     
-    folds_ = Array{Tuple{D, D}}([])
+    folds_ = Array{Tuple{NetworkData{S}, NetworkData{S}}}([])
 
     # Get size of the input data
     n = length(nd.data)#[end]
+    if fold > n
+        throw(ErrorException("There are more fold requested than the number of samples."))
+    end
     # We need to consider about sample size
 
     # Get permuted form of the indexes
@@ -59,25 +58,27 @@ function kfold(nd::D{S}; fold=10) where {D <: AbstractNetworkData, S <: Online}
         tst = [l_test:u_test...]
         trn = [1:(l_test - 1)...,(u_test + 1):n...]
         # Minibatching operation for each folding set
-        push!(folds_, (D(data_[trn], nd), D(data_[tst], nd)))
+        push!(folds_, (NetworkData(data_[trn], nd), NetworkData(data_[tst], nd)))
 
 
     end
 
     # Return constructed kfold_ object
-    kfold{D}(folds_)
+    kfold{NetworkData{S}}(folds_)
 
 end
 
 
-function kfold(nd::D{S}; fold=10) where {D <: AbstractNetworkData, S <: Offline}
+function kfold(nd::NetworkData{S}; fold=10) where S <: Offline
     
-    folds_ = Array{Tuple{D, D}}([])
+    folds_ = Array{Tuple{NetworkData{S}, NetworkData{S}}}([])
 
     # Get size of the input data
     n = size(nd.X)[end]
     # We need to consider about sample size
-
+    if fold > n
+        throw(ErrorException("There are more fold requested than the number of samples."))
+    end
     # Get permuted form of the indexes
     
     X_ = nd.shuffle ? nd.X[randperm(n)] : nd.X
@@ -97,12 +98,12 @@ function kfold(nd::D{S}; fold=10) where {D <: AbstractNetworkData, S <: Offline}
         tst = [l_test:u_test...]
         trn = [1:(l_test - 1)...,(u_test + 1):n...]
         # Minibatching operation for each folding set
-        push!(folds_, (D(X_[trn], y_[trn], nd), D(X_[tst], y_[tst], nd)))
+        push!(folds_, (NetworkData(X_[:, trn], y_[:, trn], nd), NetworkData(X_[:, tst], y_[:, tst], nd)))
 
 
     end
 
     # Return constructed kfold_ object
-    return kfold{D}(folds_)
+    return kfold{NetworkData{S}}(folds_)
 
 end

@@ -85,8 +85,9 @@ end
 function NetworkData(data, nd::NetworkData{T}) where T <: AbstractStatus
 
     # read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
-
-    return NetworkData{T}(nd.data_handler, data, nd.X, nd.y, nd.shuffle, nd.batchsize, nd.length, nd.partial, nd.imax, nd.atype, nd.xsize, nd.ysize, nd.xtype, nd.ytype)
+    n = length(data)
+    imax = nd.partial ? n : n - nd.batchsize + 1
+    return NetworkData{T}(nd.data_handler, data, nd.X, nd.y, nd.shuffle, nd.batchsize, n, nd.partial, imax, nd.atype, nd.xsize, nd.ysize, nd.xtype, nd.ytype)
 
 end
 
@@ -94,8 +95,10 @@ end
 function NetworkData(X, y, nd::NetworkData{T}) where T <: AbstractStatus
 
     # read_count = floor(Int, length(data) * nd.read_rate) # Number of data points to read each time
+    n = size(X)[end]
+    imax = nd.partial ? n : n - nd.batchsize + 1
 
-    return NetworkData{T}(nd.data_handler, nd.data, X, y, nd.shuffle, nd.batchsize, nd.length, nd.partial, nd.imax, nd.atype, nd.xsize, nd.ysize, nd.xtype, nd.ytype)
+    return NetworkData{T}(nd.data_handler, nd.data, X, y, nd.shuffle, nd.batchsize, n, nd.partial, imax, nd.atype, nd.xsize, nd.ysize, nd.xtype, nd.ytype)
 
 end
 
