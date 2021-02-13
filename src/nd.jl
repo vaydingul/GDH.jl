@@ -59,7 +59,7 @@ function NetworkData(data_handler::DataHandler{T}, main_path; shuffle::Bool=fals
 
         xsize = xsize === nothing && size(X)
         ysize = ysize === nothing && size(y)
-        xtype = xtype === nothing && (eltype(X) <: AbstractFloat ? atype : (typeof(X).name.wrapper){eltype(x)})
+        xtype = xtype === nothing && (eltype(X) <: AbstractFloat ? atype : (typeof(X).name.wrapper){eltype(X)})
         ytype = ytype === nothing && (eltype(y) <: AbstractFloat ? atype : (typeof(y).name.wrapper){eltype(y)})
 
 
